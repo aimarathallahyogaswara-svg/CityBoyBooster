@@ -1,22 +1,59 @@
 """
-CityBoy Universal Booster — v1.1
-An open-source, cross-game performance optimizer for Windows.
-Works with any game: Roblox, Minecraft, Fortnite, CS2, Valorant, etc.
+CityBoy Universal Booster — v1.2
+Hey! So this is the main file. It's a single-script app so everything lives here —
+the UI, all the boost logic, the cleanup on exit, all of it. Keeps things simple.
 
-How it works:
-  - Flushes idle RAM from every process using the Windows kernel API
-  - Unlocks the hidden "Ultimate Performance" power plan built into Windows
-  - Elevates game-process CPU scheduling priority via PowerShell
-  - Cleans up log/cache bloat that causes micro-stutters over time
-  - Applies safe Roblox FFlags (rendering only, no network flags)
+What this thing actually does when you click buttons:
 
-Safety:
-  - When you close this app, it automatically reverts Roblox FFlags
-    and restores your original Windows power plan so nothing is left behind.
-  - No drivers are installed. No system files are modified permanently.
-  - Every action is logged in the console so you can see exactly what happened.
+  RAM Flush
+    Calls EmptyWorkingSet() on every running process through the Windows kernel.
+    That's a real API call, not a fake trick. Your RAM bar will literally drop.
+    Great to run before launching any game.
 
-License: MIT — do whatever you want with it.
+  Ultimate Power Plan
+    Windows ships with a hidden "Ultimate Performance" power scheme that disables
+    CPU throttling entirely. It's just... not enabled by default for some reason.
+    We unlock it with powercfg, save your old plan, and restore it when you close.
+
+  Process Priority
+    Uses PowerShell to bump your game to High scheduling priority. The OS gives
+    high-priority threads more CPU time slices. Works the same as Task Manager
+    but without you having to go dig through menus every time.
+
+  Sleeper Mode
+    Drops Discord, Chrome, Spotify, etc. to BelowNormal priority so they don't
+    steal CPU cycles from your game mid-match. Nobody wants lag because Chrome
+    decided to run 40 background tasks at the wrong moment.
+
+  DNS Switch
+    Swaps your adapter DNS to Cloudflare 1.1.1.1 for faster server lookups.
+    Won't magically fix your ping, but cuts out slow ISP DNS responses.
+
+  Registry Tweaks
+    Turns off GameDVR (Windows background recording eats CPU for no reason),
+    bumps MMCSS gaming thread priority, and disables network throttling.
+    All standard Microsoft-documented keys — nothing sketchy.
+
+  Roblox FFlags
+    Writes a ClientAppSettings.json into Roblox's ClientSettings folder.
+    Rendering + physics flags only. We never touch network flags (MTU, RakNet)
+    because those cause Hyperion auto-kicks. When you close the app, this file
+    gets cleaned up automatically so Roblox goes back to vanilla.
+
+  VFX Kill Mode (new in v1.2)
+    Disables the particle system engine, removes grass rendering, and forces
+    MSAA to 0. Basically strips out all the eye-candy so your GPU can focus
+    entirely on frame delivery. Big help on lower-end machines.
+
+Cleanup on exit:
+    The app hooks WM_DELETE_WINDOW so when you hit X, it runs cleanup before
+    closing — removes Roblox flags, restores your power plan. No leftover junk.
+
+Dev note:
+    All the page-building methods are named _build_<game>_page() so they're easy
+    to find. If you want to add a new game tab, just follow that pattern.
+
+License: MIT — fork it, break it, make it yours.
 """
 
 import customtkinter as ctk
@@ -79,6 +116,18 @@ ROBLOX_FLAGS_PRESETS = {
         "FIntRenderLocalLightUpdatesMin": 4,
         "DFFlagPhysicsSkipObsoletePrimitives": "True",
     },
+    "VFX": {
+        "DFIntTaskSchedulerTargetFps": 9999,
+        "FFlagDebugGraphicsDisableDirect3D11Vsync1": "True",
+        "FFlagDisablePostFx": "True",
+        "DFFlagDisableDPIScale": "True",
+        "FIntRenderShadowIntensity": 0,
+        "DFFlagPhysicsSkipObsoletePrimitives": "True",
+        "FFlagDebugGraphicsDisableParticleSystems": "True",
+        "FIntFRMMinGrassDistance": 0,
+        "FIntFRMMaxGrassDistance": 0,
+        "FIntDebugForceMSAASamples": 0,
+    },
 }
 
 
@@ -95,7 +144,7 @@ class CityBoyBooster(ctk.CTk):
         self.original_power_plan_guid = None
         self.roblox_flags_applied = False
 
-        self.title("CITYBOY HUB")
+        self.title("CITYBOY HUB v1.2")
         self.geometry("760x560")
         self.resizable(False, False)
         self.configure(fg_color="#030304")
@@ -119,7 +168,7 @@ class CityBoyBooster(ctk.CTk):
         ).grid(row=0, column=0, padx=20, pady=(25, 0))
 
         ctk.CTkLabel(
-            self.sidebar, text="universal booster v1.1",
+            self.sidebar, text="universal booster v1.2",
             font=ctk.CTkFont(family="Inter", size=9), text_color="#00FFCC",
         ).grid(row=1, column=0, padx=20, pady=(0, 20))
 
@@ -525,6 +574,7 @@ class CityBoyBooster(ctk.CTk):
         self._btn(f, "Apply 120 FPS", lambda: self._apply_roblox_preset(120))
         self._btn(f, "Apply 190 FPS", lambda: self._apply_roblox_preset(190))
         self._btn(f, "Apply MAX Performance", lambda: self._apply_roblox_preset(9999))
+        self._btn(f, "🚫  Disable All VFX (Max Performance + No Particles)", lambda: self._apply_roblox_preset("VFX"))
         self._btn(f, "🗑  Revert to Vanilla (remove all flags)",
                   self._cmd_revert_roblox,
                   fg="#2A1015", hover="#441020", text_color="#FF4466")
@@ -585,8 +635,13 @@ class CityBoyBooster(ctk.CTk):
         preset = ROBLOX_FLAGS_PRESETS.get(fps)
         if not preset:
             return
-        label = "MAX" if fps == 9999 else str(fps)
-        self.log(f"applying {label} FPS preset...")
+        if fps == 9999:
+            label = "MAX Performance"
+        elif fps == "VFX":
+            label = "No VFX"
+        else:
+            label = f"{fps} FPS"
+        self.log(f"applying {label} preset...")
         self._write_roblox_fflags(preset)
 
     def _cmd_revert_roblox(self):
