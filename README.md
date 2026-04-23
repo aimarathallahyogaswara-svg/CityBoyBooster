@@ -1,8 +1,6 @@
-# CityBoy Universal Booster
+# CityBoy Universal Booster v1.1
 
-A free, open-source Windows game performance optimizer. Works with **Roblox, Minecraft, Fortnite, CS2, Valorant** — basically any game.
-
-No placebo tweaks. Every optimization uses real Windows kernel APIs and system calls.
+Free, open-source Windows game booster. Flushes idle RAM, unlocks the hidden Ultimate Performance power plan, boosts game process priority, and switches to faster DNS. Has built-in Roblox FPS unlock (120/190/MAX) plus cache cleanup for Minecraft & Fortnite. Everything reverts automatically when you close it. No memory injection, no anti-cheat issues.
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -16,6 +14,7 @@ No placebo tweaks. Every optimization uses real Windows kernel APIs and system c
 |---|---|---|
 | **Free System RAM** | Calls `EmptyWorkingSet()` via Windows kernel API on every process. Forces idle RAM back to the OS. | ❌ Real — you can watch your RAM % drop live |
 | **Ultimate Power Plan** | Unlocks Microsoft's hidden high-performance power scheme using `powercfg`. Disables CPU throttling. | ❌ Real — built into Windows, just hidden |
+| **Sleeper Mode** | Safely drops CPU priority of background apps (Discord, Chrome) to `BelowNormal` so they don't eat CPU cycles. | ❌ Real — OS scheduling prioritization |
 | **Process Priority** | Uses PowerShell to set your game's CPU scheduling priority to High. OS gives it more CPU time. | ❌ Real — standard Windows task management |
 | **DNS Optimization** | Switches your network adapter to Cloudflare DNS (1.1.1.1). Faster DNS = faster server connections. | ❌ Real — measurable with `ping` |
 | **GameDVR Disable** | Turns off Windows background game recording that eats CPU/GPU in the background. | ❌ Real — Microsoft recommends this for gaming |
