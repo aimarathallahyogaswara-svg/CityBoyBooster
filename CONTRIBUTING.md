@@ -5,7 +5,7 @@ First off, thanks for taking the time to contribute! This project is completely 
 ## Getting Started
 
 1. **Fork the repository** on GitHub.
-2. **Clone your fork** locally: `git clone https://github.com/YOUR-USERNAME/CityBoyBooster.git`
+2. **Clone your fork** locally: `git clone https://github.com/aimarathallahyogaswara-svg/CityBoyBooster/blob/main/Run_CityBoy.bat`
 3. Make sure you have the dependencies installed: `pip install customtkinter psutil`
 
 ## What Can I Add?
