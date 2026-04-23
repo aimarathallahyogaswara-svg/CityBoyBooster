@@ -1,5 +1,5 @@
 """
-CityBoy Universal Booster — v1.0
+CityBoy Universal Booster — v1.1
 An open-source, cross-game performance optimizer for Windows.
 Works with any game: Roblox, Minecraft, Fortnite, CS2, Valorant, etc.
 
@@ -98,7 +98,7 @@ class CityBoyBooster(ctk.CTk):
         self.title("CITYBOY HUB")
         self.geometry("760x560")
         self.resizable(False, False)
-        self.configure(fg_color="#050508")
+        self.configure(fg_color="#030304")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.grid_columnconfigure(1, weight=1)
@@ -107,20 +107,20 @@ class CityBoyBooster(ctk.CTk):
         # ── sidebar ──────────────────────────────────────────────────────
         self.sidebar = ctk.CTkFrame(
             self, width=185, corner_radius=0,
-            fg_color="#09090B", border_width=1, border_color="#161618",
+            fg_color="#070709", border_width=0,
         )
         self.sidebar.grid(row=0, column=0, rowspan=2, sticky="nsew")
         self.sidebar.grid_rowconfigure(7, weight=1)   # push HUD to bottom
 
         ctk.CTkLabel(
             self.sidebar, text="CITYBOY",
-            font=ctk.CTkFont(family="Inter", size=26, weight="bold"),
-            text_color="#00FFCC",
+            font=ctk.CTkFont(family="Inter", size=26, weight="black"),
+            text_color="#FFFFFF",
         ).grid(row=0, column=0, padx=20, pady=(25, 0))
 
         ctk.CTkLabel(
-            self.sidebar, text="universal booster v1.0",
-            font=ctk.CTkFont(family="Inter", size=9), text_color="#3A3A3A",
+            self.sidebar, text="universal booster v1.1",
+            font=ctk.CTkFont(family="Inter", size=9), text_color="#00FFCC",
         ).grid(row=1, column=0, padx=20, pady=(0, 20))
 
         # navigation buttons
@@ -137,18 +137,18 @@ class CityBoyBooster(ctk.CTk):
             for i, f in enumerate(frames_list):
                 f.grid_forget()
                 self.nav_buttons[i].configure(
-                    fg_color="transparent", text_color="#666666",
+                    fg_color="transparent", text_color="#555555",
                 )
             frames_list[idx].grid(row=0, column=1, sticky="nsew", padx=25, pady=25)
             self.nav_buttons[idx].configure(
-                fg_color="#151518", text_color="#FFFFFF",
+                fg_color="#121215", text_color="#FFFFFF",
             )
 
         for label, row in nav_items:
             btn = ctk.CTkButton(
                 self.sidebar, text=label, anchor="w",
-                fg_color="transparent", text_color="#666666",
-                hover_color="#1A1A1E",
+                fg_color="transparent", text_color="#555555",
+                hover_color="#121215", corner_radius=6,
                 font=ctk.CTkFont(size=13, weight="bold"),
                 command=lambda r=row: _switch(r - 2),
             )
@@ -157,8 +157,8 @@ class CityBoyBooster(ctk.CTk):
 
         # live hardware HUD — updates every second
         hud = ctk.CTkFrame(
-            self.sidebar, fg_color="#07070A", corner_radius=6,
-            border_color="#1F1F22", border_width=1,
+            self.sidebar, fg_color="#050507", corner_radius=8,
+            border_color="#111115", border_width=1,
         )
         hud.grid(row=8, column=0, padx=14, pady=(0, 20), sticky="sew")
 
@@ -187,8 +187,8 @@ class CityBoyBooster(ctk.CTk):
         self.log_box = ctk.CTkTextbox(
             self, height=120,
             font=ctk.CTkFont(family="Consolas", size=11),
-            fg_color="#050508", text_color="#00FFCC",
-            border_width=1, border_color="#161618", corner_radius=5,
+            fg_color="#050507", text_color="#A0A0A0",
+            border_width=1, border_color="#111115", corner_radius=8,
         )
         self.log_box.grid(row=1, column=1, sticky="nsew", padx=25, pady=(0, 20))
         self.log_box.configure(state="disabled")
@@ -296,11 +296,15 @@ class CityBoyBooster(ctk.CTk):
 
         self._btn(f, "🔋  Activate Ultimate Power Plan",
                   self._cmd_power_plan,
-                  fg="#1A0005", hover="#33000A", text_color="#FF3355")
+                  fg="#1A0A05", hover="#2E110A", text_color="#FF4422")
 
         self._btn(f, "🧹  Free System RAM (EmptyWorkingSet)",
                   self._cmd_nuke_ram,
-                  fg="#001A06", hover="#00330C", text_color="#33FF66")
+                  fg="#051A0A", hover="#0A2E11", text_color="#22FF66")
+
+        self._btn(f, "💤  Enable Sleeper Mode for Background Apps",
+                  self._cmd_sleeper_mode,
+                  fg="#0A0A1A", hover="#11112E", text_color="#6688FF")
 
         self._btn(f, "🌐  Switch DNS → Cloudflare 1.1.1.1",
                   self._cmd_dns,
@@ -465,6 +469,42 @@ class CityBoyBooster(ctk.CTk):
             self.log(f"  → network tweak failed: {e}")
 
         self.log("registry tweaks done. you might want to restart to feel the full effect.")
+
+    def _cmd_sleeper_mode(self):
+        """
+        Lowers priority of common background apps to 'BelowNormal'
+        so they don't eat CPU cycles from the game.
+        """
+        targets = ["discord", "chrome", "msedge", "brave", "spotify", "opera", "firefox"]
+        self.log("putting background apps to sleep (lowering CPU priority)...")
+        
+        found_any = False
+        for proc in psutil.process_iter(["name"]):
+            pname = (proc.info.get("name") or "").lower().replace(".exe", "")
+            if pname in targets:
+                found_any = True
+                break
+                
+        if not found_any:
+            self.log("no heavy background apps found to sleep. you're good.")
+            return
+
+        cmd = (
+            f'powershell.exe -Command "'
+            f"$apps = '{','.join(targets)}' -split ','; "
+            f"ForEach ($app in $apps) {{ "
+            f"Get-Process $app -ErrorAction SilentlyContinue | ForEach-Object {{ $_.PriorityClass = 'BelowNormal' }} "
+            f"}}"
+            f'"'
+        )
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                self.log("done — Discord, browsers, and Spotify are now running in sleeper mode.")
+            else:
+                self.log("error lowering priority. make sure you're running as admin.")
+        except Exception as e:
+            self.log(f"sleeper mode failed: {e}")
 
     def _cmd_inject_custom(self):
         target = self.process_entry.get().strip()
