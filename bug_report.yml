@@ -1,0 +1,39 @@
+name: Bug Report
+description: Create a report to help us improve CityBoy Booster
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what went wrong...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Open the app
+        2. Click on 'Universal' tab
+        3. Click 'Nuke RAM'
+        4. See error...
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Windows Version
+      description: Are you using Windows 10 or Windows 11?
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you running? (Check with `python --version` in terminal)
+    validations:
+      required: true
