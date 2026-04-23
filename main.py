@@ -114,7 +114,7 @@ class CityBoyBooster(ctk.CTk):
 
         ctk.CTkLabel(
             self.sidebar, text="CITYBOY",
-            font=ctk.CTkFont(family="Inter", size=26, weight="black"),
+            font=ctk.CTkFont(family="Inter", size=26, weight="bold"),
             text_color="#FFFFFF",
         ).grid(row=0, column=0, padx=20, pady=(25, 0))
 
