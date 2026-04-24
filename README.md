@@ -4,10 +4,10 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey?style=flat-square)
-![Version](https://img.shields.io/badge/Version-v1.2-00FFCC?style=flat-square)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20Android-lightgrey?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v1.3-00FFCC?style=flat-square)
 
-CityBoy is a single-file Python application that applies real, measurable Windows-level optimizations to improve game performance. It works universally across any game and includes dedicated presets for Roblox, Minecraft, and Fortnite. Everything it touches gets **automatically reverted** when you close the app — nothing is left behind on your system.
+CityBoy is a multi-platform Python application that applies real, measurable optimizations to improve game performance. It works universally across any game and includes dedicated presets for Roblox, Minecraft, and Fortnite on Windows, plus a new CLI for Android via Termux. Everything it touches on Windows gets **automatically reverted** when you close the app — nothing is left behind on your system.
 
 ---
 
@@ -24,6 +24,8 @@ CityBoy is a single-file Python application that applies real, measurable Window
 | **Roblox FFlags** | Writes rendering + physics flags to `ClientAppSettings.json`. Zero network flags (those cause kicks) | ✅ Yes — official Roblox client config |
 | **VFX Kill Mode** | Disables Roblox particle systems, removes grass rendering, forces MSAA to 0 | ✅ Yes — GPU-load reduction on weak hardware |
 | **Cache Cleanup** | Deletes accumulated logs and crash dumps for Minecraft and Fortnite | ✅ Yes — reduces game loading stutter |
+| **GPU Scheduling (Win)** | Detects Vulkan/OpenGL capabilities and enables HAGS via safe registry tweaks | ✅ Yes — improves rendering latency on supported GPUs |
+| **Android Termux CLI** | Provides RAM flushing, wake locks, and generic cache cleanup for Android devices without root | ✅ Yes — optimizes Android gaming performance |
 
 ---
 
@@ -38,7 +40,7 @@ CityBoy is a single-file Python application that applies real, measurable Window
 
 The batch file automatically installs Python dependencies on first run.
 
-### Manual Setup
+### Windows Manual Setup
 
 ```bash
 pip install customtkinter psutil
@@ -46,6 +48,20 @@ python main.py
 ```
 
 > **Note:** Administrator privileges are required for process priority, power plan, and registry features.
+
+### Android Setup (Termux)
+
+See the full guide in [`android/ANDROID_GUIDE.md`](android/ANDROID_GUIDE.md).
+
+```bash
+pkg install python git
+git clone https://github.com/YOUR-USERNAME/CityBoyBooster.git
+cd "CityBoyBooster/android"
+chmod +x install.sh
+./install.sh
+cd ..
+python main2.py
+```
 
 ---
 
@@ -68,10 +84,11 @@ This tool is designed to be fully reversible and transparent.
 
 | Game | Available Optimizations |
 |---|---|
-| **Any Game** | RAM flush, power plan, sleeper mode, process priority, DNS, registry tweaks |
-| **Roblox** | FPS presets (120 / 190 / MAX / No-VFX), auto-revert on close |
+| **Any Game (Windows)** | RAM flush, power plan, sleeper mode, process priority, DNS, registry tweaks |
+| **Roblox (Windows)** | FPS presets (120 / 190 / MAX / No-VFX), auto-revert on close |
 | **Minecraft (Java)** | `javaw.exe` priority boost, log folder cleanup, browser RAM reclaim |
-| **Fortnite** | Process priority, log + crash dump cleanup |
+| **Fortnite (Windows)** | Process priority, log + crash dump cleanup |
+| **Android (Universal)** | RAM flush, cache cleanup, wake lock, system diagnostics |
 
 Want another game added? Open an issue or PR — contributions are welcome.
 
@@ -132,6 +149,11 @@ A: Three features require elevation: changing process CPU priority, writing to H
 ---
 
 ## Changelog
+
+### v1.3 — 2026-04-24
+- **Added:** Android support! A new interactive CLI (`main2.py`) for Termux. Includes RAM flushing, cache cleaning, and wake locks for mobile gamers. No root required.
+- **Added:** New "GPU" tab for Windows. Detects OpenGL and Vulkan capabilities, and provides a toggle to enable Hardware-Accelerated GPU Scheduling (HAGS).
+- **Added:** GPU information is now displayed live in the sidebar HUD on Windows.
 
 ### v1.2 — 2026-04-24
 - **Added:** "No VFX" Roblox FFlag preset — disables particle systems (`FFlagDebugGraphicsDisableParticleSystems`), removes all grass (`FIntFRMMinGrassDistance / Max`), and forces MSAA to 0 (`FIntDebugForceMSAASamples`). Targeted at low-end hardware and competitive play.

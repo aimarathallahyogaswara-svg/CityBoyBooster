@@ -21,3 +21,7 @@ venv/
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# Android/Termux
+.termux/
+android/__pycache__/

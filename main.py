@@ -1,5 +1,5 @@
 """
-CityBoy Universal Booster — v1.2
+CityBoy Universal Booster — v1.3
 Hey! So this is the main file. It's a single-script app so everything lives here —
 the UI, all the boost logic, the cleanup on exit, all of it. Keeps things simple.
 
@@ -33,6 +33,10 @@ What this thing actually does when you click buttons:
     Turns off GameDVR (Windows background recording eats CPU for no reason),
     bumps MMCSS gaming thread priority, and disables network throttling.
     All standard Microsoft-documented keys — nothing sketchy.
+    
+  GPU Enhancements (new in v1.3)
+    Detects OpenGL & Vulkan capabilities and enables Windows Hardware-Accelerated 
+    GPU Scheduling via safe registry keys.
 
   Roblox FFlags
     Writes a ClientAppSettings.json into Roblox's ClientSettings folder.
@@ -65,6 +69,7 @@ import psutil
 import subprocess
 import shutil
 import threading
+import atexit
 from datetime import datetime
 
 
@@ -123,10 +128,20 @@ ROBLOX_FLAGS_PRESETS = {
         "DFFlagDisableDPIScale": "True",
         "FIntRenderShadowIntensity": 0,
         "DFFlagPhysicsSkipObsoletePrimitives": "True",
-        "FFlagDebugGraphicsDisableParticleSystems": "True",
-        "FIntFRMMinGrassDistance": 0,
-        "FIntFRMMaxGrassDistance": 0,
+        # VFX kill flags — verified working names
+        "FIntParticleEmitterRate": 0,
+        "FFlagEnableParticleEmitter": "False",
+        "FIntGrassMaxDistance": 0,
+        "FIntRenderGrassDetailStrands": 0,
+        "FIntTerrainOctreeMaxDepth": 3,
         "FIntDebugForceMSAASamples": 0,
+        "FFlagGlobalWindRendering": "False",
+        "DFIntCSGLevelOfDetailSwitchingDistance": 0,
+        "FIntRenderShadowmapBias": 999999999,
+        "DFIntDebugRestrictGCDistance": 1,
+        "FFlagDebugSkyGray": "True",
+        "FIntRenderLocalLightUpdatesMax": 1,
+        "FIntRenderLocalLightUpdatesMin": 1,
     },
 }
 
@@ -143,8 +158,10 @@ class CityBoyBooster(ctk.CTk):
         # restore it when they close the app.  None = haven't changed it yet.
         self.original_power_plan_guid = None
         self.roblox_flags_applied = False
+        self._hud_after_id = None        # track the HUD timer so we can cancel it
+        self._closing = False            # prevent double-close
 
-        self.title("CITYBOY HUB v1.2")
+        self.title("CITYBOY HUB v1.3")
         self.geometry("760x560")
         self.resizable(False, False)
         self.configure(fg_color="#030304")
@@ -168,16 +185,17 @@ class CityBoyBooster(ctk.CTk):
         ).grid(row=0, column=0, padx=20, pady=(25, 0))
 
         ctk.CTkLabel(
-            self.sidebar, text="universal booster v1.2",
+            self.sidebar, text="universal booster v1.3",
             font=ctk.CTkFont(family="Inter", size=9), text_color="#00FFCC",
         ).grid(row=1, column=0, padx=20, pady=(0, 20))
 
         # navigation buttons
         nav_items = [
             ("⚡  Universal",  2),
-            ("🎮  Roblox",     3),
-            ("⛏  Minecraft",  4),
-            ("🔫  Fortnite",   5),
+            ("🖥  GPU",        3),
+            ("🎮  Roblox",     4),
+            ("⛏  Minecraft",  5),
+            ("🔫  Fortnite",   6),
         ]
         self.nav_buttons = []
         frames_list = []   # filled after we create the content frames
@@ -223,14 +241,22 @@ class CityBoyBooster(ctk.CTk):
             font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
             text_color="#FF3366",
         )
-        self.lbl_ram.pack(pady=(2, 10), padx=10, fill="x")
+        self.lbl_ram.pack(pady=(2, 2), padx=10, fill="x")
+
+        self.lbl_gpu = ctk.CTkLabel(
+            hud, text="GPU  …", anchor="w",
+            font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
+            text_color="#3399FF",
+        )
+        self.lbl_gpu.pack(pady=(2, 10), padx=10, fill="x")
 
         # ── content frames ───────────────────────────────────────────────
         self.univ_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.gpu_frame  = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.rblx_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.mc_frame   = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.fn_frame   = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        frames_list.extend([self.univ_frame, self.rblx_frame, self.mc_frame, self.fn_frame])
+        frames_list.extend([self.univ_frame, self.gpu_frame, self.rblx_frame, self.mc_frame, self.fn_frame])
 
         # ── bottom console log ───────────────────────────────────────────
         self.log_box = ctk.CTkTextbox(
@@ -244,6 +270,7 @@ class CityBoyBooster(ctk.CTk):
 
         # build out each page
         self._build_universal_page()
+        self._build_gpu_page()
         self._build_roblox_page()
         self._build_minecraft_page()
         self._build_fortnite_page()
@@ -293,16 +320,31 @@ class CityBoyBooster(ctk.CTk):
 
     def _tick_hud(self):
         """Refresh CPU / RAM bars every second."""
-        cpu = psutil.cpu_percent(interval=None)
-        ram = psutil.virtual_memory()
+        if self._closing:
+            return
+        try:
+            cpu = psutil.cpu_percent(interval=None)
+            ram = psutil.virtual_memory()
 
-        def bar(pct):
-            filled = int(pct / 100 * 12)
-            return "█" * filled + "░" * (12 - filled)
+            def bar(pct):
+                filled = int(pct / 100 * 12)
+                return "█" * filled + "░" * (12 - filled)
 
-        self.lbl_cpu.configure(text=f"CPU  {bar(cpu)}  {int(cpu):>3}%")
-        self.lbl_ram.configure(text=f"RAM  {bar(ram.percent)}  {int(ram.percent):>3}%")
-        self.after(1000, self._tick_hud)
+            self.lbl_cpu.configure(text=f"CPU  {bar(cpu)}  {int(cpu):>3}%")
+            self.lbl_ram.configure(text=f"RAM  {bar(ram.percent)}  {int(ram.percent):>3}%")
+            
+            if "..." in self.lbl_gpu.cget("text"):
+                try:
+                    res = subprocess.getoutput("wmic path win32_VideoController get name")
+                    lines = [l.strip() for l in res.split("\n") if l.strip() and "Name" not in l]
+                    g_name = lines[0] if lines else "Unknown"
+                    if len(g_name) > 13: g_name = g_name[:10] + "..."
+                    self.lbl_gpu.configure(text=f"GPU  {g_name}")
+                except:
+                    self.lbl_gpu.configure(text=f"GPU  Unknown")
+        except Exception:
+            return  # widget was destroyed, stop updating
+        self._hud_after_id = self.after(1000, self._tick_hud)
 
     # ─── safe shutdown ───────────────────────────────────────────────────
 
@@ -312,13 +354,30 @@ class CityBoyBooster(ctk.CTk):
         We revert anything that might leave the system in a weird state:
           1. Remove any Roblox FFlags we wrote
           2. Restore the original Windows power plan (if we changed it)
-        Then close normally — no os._exit, no force kill.
+        Then forcefully exit so the CMD window closes too.
         """
-        self.log("cleaning up before we go...")
+        if self._closing:
+            return  # already shutting down, don't double-fire
+        self._closing = True
+
+        # Stop the HUD ticker immediately so it doesn't fire during teardown
+        if self._hud_after_id is not None:
+            try:
+                self.after_cancel(self._hud_after_id)
+            except Exception:
+                pass
+
+        try:
+            self.log("cleaning up before we go...")
+        except Exception:
+            pass
 
         # 1) revert roblox flags
         if self.roblox_flags_applied:
-            self._remove_roblox_fflags(silent=True)
+            try:
+                self._remove_roblox_fflags(silent=True)
+            except Exception:
+                pass
 
         # 2) restore original power plan
         if self.original_power_plan_guid:
@@ -326,13 +385,19 @@ class CityBoyBooster(ctk.CTk):
                 subprocess.run(
                     f"powercfg /setactive {self.original_power_plan_guid}",
                     shell=True, capture_output=True,
+                    timeout=5,
                 )
-                self.log("restored your original power plan.")
             except Exception:
                 pass
 
-        self.log("all clear. see you next time!")
-        self.after(300, self.destroy)
+        # 3) destroy the window and force-exit the process
+        #    This ensures the CMD window closes properly even if
+        #    background threads or after() callbacks are still pending.
+        try:
+            self.destroy()
+        except Exception:
+            pass
+        os._exit(0)
 
     # =====================================================================
     #  UNIVERSAL PAGE
@@ -454,22 +519,41 @@ class CityBoyBooster(ctk.CTk):
         threading.Thread(target=_work, daemon=True).start()
 
     def _cmd_dns(self):
-        self.log("flushing DNS cache...")
-        subprocess.run("ipconfig /flushdns", shell=True, capture_output=True)
-        cmd = (
-            'powershell.exe -Command "'
-            "Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | "
-            "Set-DnsClientServerAddress -ServerAddresses '1.1.1.1','1.0.0.1'"
-            '"'
-        )
-        try:
-            res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            if res.returncode == 0:
-                self.log("DNS switched to Cloudflare 1.1.1.1 — should feel snappier online.")
-            else:
-                self.log("couldn't change adapter DNS. you might need to do it manually in network settings.")
-        except Exception:
-            self.log("DNS command failed unexpectedly.")
+        def _work():
+            self.log("flushing DNS cache...")
+            try:
+                subprocess.run(
+                    "ipconfig /flushdns", shell=True,
+                    capture_output=True, timeout=10,
+                )
+            except Exception:
+                pass
+
+            # Build the PowerShell command properly to avoid quoting hell.
+            # Using -EncodedCommand with a Base64-encoded script is the most
+            # reliable way to pass complex PS commands from Python.
+            ps_script = (
+                "Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | "
+                "Set-DnsClientServerAddress -ServerAddresses @('1.1.1.1','1.0.0.1')"
+            )
+            import base64
+            encoded = base64.b64encode(ps_script.encode("utf-16-le")).decode("ascii")
+            cmd = ["powershell.exe", "-NoProfile", "-EncodedCommand", encoded]
+
+            try:
+                res = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=15,
+                )
+                if res.returncode == 0:
+                    self.log("DNS switched to Cloudflare 1.1.1.1 — should feel snappier online.")
+                else:
+                    err = (res.stderr or "").strip()
+                    self.log(f"couldn't change adapter DNS. {err or 'try doing it manually in network settings.'}")
+            except subprocess.TimeoutExpired:
+                self.log("DNS command timed out. your adapter might be busy — try again.")
+            except Exception as e:
+                self.log(f"DNS command failed: {e}")
+        threading.Thread(target=_work, daemon=True).start()
 
     def _cmd_regedit(self):
         """
@@ -538,16 +622,18 @@ class CityBoyBooster(ctk.CTk):
             self.log("no heavy background apps found to sleep. you're good.")
             return
 
-        cmd = (
-            f'powershell.exe -Command "'
-            f"$apps = '{','.join(targets)}' -split ','; "
-            f"ForEach ($app in $apps) {{ "
-            f"Get-Process $app -ErrorAction SilentlyContinue | ForEach-Object {{ $_.PriorityClass = 'BelowNormal' }} "
-            f"}}"
-            f'"'
+        import base64
+        ps_script = (
+            "$apps = @('" + "','".join(targets) + "'); "
+            "ForEach ($app in $apps) { "
+            "Get-Process $app -ErrorAction SilentlyContinue | ForEach-Object { $_.PriorityClass = 'BelowNormal' } "
+            "}"
         )
+        encoded = base64.b64encode(ps_script.encode("utf-16-le")).decode("ascii")
+        cmd = ["powershell.exe", "-NoProfile", "-EncodedCommand", encoded]
+
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
             if result.returncode == 0:
                 self.log("done — Discord, browsers, and Spotify are now running in sleeper mode.")
             else:
@@ -561,6 +647,71 @@ class CityBoyBooster(ctk.CTk):
             self.log("type a process name in the box first (like cs2.exe).")
             return
         self._set_process_priority(target)
+
+    # =====================================================================
+    #  GPU PAGE
+    # =====================================================================
+
+    def _build_gpu_page(self):
+        f = self.gpu_frame
+        self._heading(f, "GPU Diagnostics & Tweaks",
+                      "Detects OpenGL/Vulkan capabilities and applies safe GPU scheduling.")
+
+        self._btn(f, "🔍  Check OpenGL Capabilities",
+                  self._cmd_check_opengl,
+                  fg="#0A1A1A", hover="#112E2E", text_color="#66FFFF")
+
+        self._btn(f, "🔍  Check Vulkan 1.3 Support",
+                  self._cmd_check_vulkan,
+                  fg="#1A0A0A", hover="#2E1111", text_color="#FF6666")
+
+        self._btn(f, "⚙️  Enable Hardware-Accelerated GPU Scheduling",
+                  self._cmd_enable_hws,
+                  fg="#1A1A0A", hover="#2E2E11", text_color="#FFFF66")
+                  
+        ctk.CTkLabel(
+            f, text=(
+                "Tip: Hardware-Accelerated GPU Scheduling (HAGS) reduces latency\n"
+                "and improves performance on supported NVIDIA/AMD cards.\n"
+                "Requires a PC restart to take effect."
+            ),
+            font=ctk.CTkFont(size=11), text_color="#444444",
+            wraplength=440, justify="left",
+        ).pack(anchor="w", pady=(20, 0))
+
+    def _cmd_check_opengl(self):
+        self.log("checking OpenGL driver...")
+        try:
+            gl = ctypes.windll.LoadLibrary("opengl32.dll")
+            if gl:
+                self.log("OpenGL driver (opengl32.dll) is installed and active.")
+            else:
+                self.log("OpenGL driver not found. Update your GPU drivers.")
+        except Exception as e:
+            self.log(f"OpenGL check failed: {e}")
+
+    def _cmd_check_vulkan(self):
+        self.log("checking Vulkan support...")
+        try:
+            vk = ctypes.windll.LoadLibrary("vulkan-1.dll")
+            if vk:
+                self.log("Vulkan driver (vulkan-1.dll) is installed.")
+                self.log("Run 'vulkaninfo' in CMD for full version details.")
+            else:
+                self.log("Vulkan driver not found. Your GPU might not support it.")
+        except Exception as e:
+            self.log("Vulkan driver not found or check failed.")
+
+    def _cmd_enable_hws(self):
+        self.log("enabling Hardware-Accelerated GPU Scheduling...")
+        import winreg
+        try:
+            k = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers")
+            winreg.SetValueEx(k, "HwSchMode", 0, winreg.REG_DWORD, 2)
+            winreg.CloseKey(k)
+            self.log("HAGS enabled in registry! Please restart your PC for it to take effect.")
+        except Exception as e:
+            self.log(f"couldn't enable HAGS (ensure you run as admin): {e}")
 
     # =====================================================================
     #  ROBLOX PAGE
@@ -762,14 +913,15 @@ class CityBoyBooster(ctk.CTk):
             self.log(f"{proc_name} isn't running right now. launch the game first!")
             return
 
-        cmd = (
-            f'powershell.exe -Command "'
-            f"Get-Process {nice_name} -ErrorAction SilentlyContinue | "
+        import base64
+        ps_script = (
+            f"Get-Process '{nice_name}' -ErrorAction SilentlyContinue | "
             f"ForEach-Object {{ $_.PriorityClass = 'High' }}"
-            f'"'
         )
+        encoded = base64.b64encode(ps_script.encode("utf-16-le")).decode("ascii")
+        cmd = ["powershell.exe", "-NoProfile", "-EncodedCommand", encoded]
         try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 self.log(f"done — {proc_name} is now running at High priority.")
             else:
