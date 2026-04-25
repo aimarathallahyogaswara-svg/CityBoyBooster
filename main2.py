@@ -1,5 +1,5 @@
 """
-CityBoy Universal Booster v1.3 — Android (Termux) Edition
+CityBoy Universal Booster v1.5 — Android (Termux) Edition
 A lightweight, terminal-based optimizer for Android devices. No root required.
 """
 
@@ -43,7 +43,7 @@ def get_android_info():
 
 def show_header():
     clear_screen()
-    console.print(Panel("[bold cyan]CITYBOY HUB v1.3[/bold cyan]\n[dim]Universal Android Booster (No Root)[/dim]", border_style="cyan", expand=False))
+    console.print(Panel("[bold cyan]CITYBOY HUB v1.5[/bold cyan]\n[dim]Universal Android Booster (No Root)[/dim]", border_style="cyan", expand=False))
     
 def menu_system_info():
     show_header()

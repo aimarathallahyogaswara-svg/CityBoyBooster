@@ -1,5 +1,5 @@
 """
-CityBoy Universal Booster — v1.3
+CityBoy Universal Booster — v1.5
 Hey! So this is the main file. It's a single-script app so everything lives here —
 the UI, all the boost logic, the cleanup on exit, all of it. Keeps things simple.
 
@@ -34,7 +34,7 @@ What this thing actually does when you click buttons:
     bumps MMCSS gaming thread priority, and disables network throttling.
     All standard Microsoft-documented keys — nothing sketchy.
     
-  GPU Enhancements (new in v1.3)
+  GPU Enhancements (new in v1.5)
     Detects OpenGL & Vulkan capabilities and enables Windows Hardware-Accelerated 
     GPU Scheduling via safe registry keys.
 
@@ -143,6 +143,30 @@ ROBLOX_FLAGS_PRESETS = {
         "FIntRenderLocalLightUpdatesMax": 1,
         "FIntRenderLocalLightUpdatesMin": 1,
     },
+    "POTATO": {
+        "DFIntTaskSchedulerTargetFps": 9999,
+        "FFlagDebugGraphicsDisableDirect3D11Vsync1": "True",
+        "FFlagDisablePostFx": "True",
+        "DFFlagDisableDPIScale": "True",
+        "FIntRenderShadowIntensity": 0,
+        "FIntRenderLocalLightUpdatesMax": 1,
+        "FIntRenderLocalLightUpdatesMin": 1,
+        "DFFlagPhysicsSkipObsoletePrimitives": "True",
+        "FIntParticleEmitterRate": 0,
+        "FFlagEnableParticleEmitter": "False",
+        "FIntGrassMaxDistance": 0,
+        "FIntRenderGrassDetailStrands": 0,
+        "FIntTerrainOctreeMaxDepth": 1,
+        "FIntDebugForceMSAASamples": 0,
+        "FFlagGlobalWindRendering": "False",
+        "DFIntCSGLevelOfDetailSwitchingDistance": 0,
+        "FIntRenderShadowmapBias": 999999999,
+        "DFIntDebugRestrictGCDistance": 0,
+        "FFlagDebugSkyGray": "True",
+        "FIntCameraMaxZoomDistance": 20,
+        "DFIntTextureQualityOverride": 1,
+        "DFIntClientPhysicsMaxFps": 30,
+    },
 }
 
 
@@ -161,10 +185,10 @@ class CityBoyBooster(ctk.CTk):
         self._hud_after_id = None        # track the HUD timer so we can cancel it
         self._closing = False            # prevent double-close
 
-        self.title("CITYBOY HUB v1.3")
-        self.geometry("760x560")
+        self.title("CITYBOY HUB v1.5")
+        self.geometry("780x580")
         self.resizable(False, False)
-        self.configure(fg_color="#030304")
+        self.configure(fg_color="#000000")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.grid_columnconfigure(1, weight=1)
@@ -172,8 +196,8 @@ class CityBoyBooster(ctk.CTk):
 
         # ── sidebar ──────────────────────────────────────────────────────
         self.sidebar = ctk.CTkFrame(
-            self, width=185, corner_radius=0,
-            fg_color="#070709", border_width=0,
+            self, width=190, corner_radius=0,
+            fg_color="#050505", border_width=1, border_color="#1A1A1A"
         )
         self.sidebar.grid(row=0, column=0, rowspan=2, sticky="nsew")
         self.sidebar.grid_rowconfigure(7, weight=1)   # push HUD to bottom
@@ -185,8 +209,8 @@ class CityBoyBooster(ctk.CTk):
         ).grid(row=0, column=0, padx=20, pady=(25, 0))
 
         ctk.CTkLabel(
-            self.sidebar, text="universal booster v1.3",
-            font=ctk.CTkFont(family="Inter", size=9), text_color="#00FFCC",
+            self.sidebar, text="universal booster v1.5",
+            font=ctk.CTkFont(family="Consolas", size=9, weight="bold"), text_color="#00FF44",
         ).grid(row=1, column=0, padx=20, pady=(0, 20))
 
         # navigation buttons
@@ -196,6 +220,7 @@ class CityBoyBooster(ctk.CTk):
             ("🎮  Roblox",     4),
             ("⛏  Minecraft",  5),
             ("🔫  Fortnite",   6),
+            ("🎯  Valorant",   7),
         ]
         self.nav_buttons = []
         frames_list = []   # filled after we create the content frames
@@ -208,15 +233,15 @@ class CityBoyBooster(ctk.CTk):
                 )
             frames_list[idx].grid(row=0, column=1, sticky="nsew", padx=25, pady=25)
             self.nav_buttons[idx].configure(
-                fg_color="#121215", text_color="#FFFFFF",
+                fg_color="#111111", text_color="#FFFFFF", border_color="#333333", border_width=1
             )
 
         for label, row in nav_items:
             btn = ctk.CTkButton(
                 self.sidebar, text=label, anchor="w",
                 fg_color="transparent", text_color="#555555",
-                hover_color="#121215", corner_radius=6,
-                font=ctk.CTkFont(size=13, weight="bold"),
+                hover_color="#111111", corner_radius=0, border_width=0,
+                font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
                 command=lambda r=row: _switch(r - 2),
             )
             btn.grid(row=row, column=0, pady=4, padx=12, sticky="ew")
@@ -224,8 +249,8 @@ class CityBoyBooster(ctk.CTk):
 
         # live hardware HUD — updates every second
         hud = ctk.CTkFrame(
-            self.sidebar, fg_color="#050507", corner_radius=8,
-            border_color="#111115", border_width=1,
+            self.sidebar, fg_color="#000000", corner_radius=0,
+            border_color="#222222", border_width=1,
         )
         hud.grid(row=8, column=0, padx=14, pady=(0, 20), sticky="sew")
 
@@ -239,14 +264,14 @@ class CityBoyBooster(ctk.CTk):
         self.lbl_ram = ctk.CTkLabel(
             hud, text="RAM  …", anchor="w",
             font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
-            text_color="#FF3366",
+            text_color="#FF003C",
         )
         self.lbl_ram.pack(pady=(2, 2), padx=10, fill="x")
 
         self.lbl_gpu = ctk.CTkLabel(
             hud, text="GPU  …", anchor="w",
             font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
-            text_color="#3399FF",
+            text_color="#00AAFF",
         )
         self.lbl_gpu.pack(pady=(2, 10), padx=10, fill="x")
 
@@ -256,14 +281,15 @@ class CityBoyBooster(ctk.CTk):
         self.rblx_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.mc_frame   = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.fn_frame   = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        frames_list.extend([self.univ_frame, self.gpu_frame, self.rblx_frame, self.mc_frame, self.fn_frame])
+        self.val_frame  = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        frames_list.extend([self.univ_frame, self.gpu_frame, self.rblx_frame, self.mc_frame, self.fn_frame, self.val_frame])
 
         # ── bottom console log ───────────────────────────────────────────
         self.log_box = ctk.CTkTextbox(
-            self, height=120,
+            self, height=130,
             font=ctk.CTkFont(family="Consolas", size=11),
-            fg_color="#050507", text_color="#A0A0A0",
-            border_width=1, border_color="#111115", corner_radius=8,
+            fg_color="#020202", text_color="#A0A0A0",
+            border_width=1, border_color="#222222", corner_radius=0,
         )
         self.log_box.grid(row=1, column=1, sticky="nsew", padx=25, pady=(0, 20))
         self.log_box.configure(state="disabled")
@@ -274,13 +300,14 @@ class CityBoyBooster(ctk.CTk):
         self._build_roblox_page()
         self._build_minecraft_page()
         self._build_fortnite_page()
+        self._build_valorant_page()
 
         # show universal by default
         _switch(0)
 
-        self.log("hey, everything's loaded up and ready to go.")
-        self.log("admin privileges confirmed — all systems green.")
-        self.log("tip: when you close this window, any tweaks are reverted automatically.")
+        self.log("yo, we're locked in. welcome to cityboy.")
+        self.log("admin rights detected — engine is fully unlocked.")
+        self.log("btw: when you exit, i'll clean up and revert everything to normal. stay safe.")
 
         # kick off the live hardware monitor
         self._tick_hud()
@@ -297,8 +324,8 @@ class CityBoyBooster(ctk.CTk):
 
     def _heading(self, parent, title, subtitle):
         ctk.CTkLabel(
-            parent, text=title,
-            font=ctk.CTkFont(size=20, weight="bold"), text_color="#FFFFFF",
+            parent, text=f"> {title.upper()}",
+            font=ctk.CTkFont(family="Consolas", size=22, weight="bold"), text_color="#FFFFFF",
         ).pack(anchor="w")
         ctk.CTkLabel(
             parent, text=subtitle,
@@ -306,15 +333,15 @@ class CityBoyBooster(ctk.CTk):
         ).pack(anchor="w", pady=(2, 18))
 
     def _btn(self, parent, text, command,
-             fg="#111114", hover="#222228", text_color="#FFFFFF"):
+             fg="#050505", hover="#1A1A1A", text_color="#FFFFFF"):
         """Shorthand to create a styled action button."""
         ctk.CTkButton(
             parent, text=text, command=command,
             fg_color=fg, hover_color=hover, text_color=text_color,
-            height=38, corner_radius=5,
-            border_width=1, border_color="#222228",
-            font=ctk.CTkFont(size=13, weight="bold"),
-        ).pack(fill="x", pady=5)
+            height=40, corner_radius=0,
+            border_width=1, border_color="#333333",
+            font=ctk.CTkFont(family="Consolas", size=13, weight="bold"),
+        ).pack(fill="x", pady=6)
 
     # ─── live hardware HUD ───────────────────────────────────────────────
 
@@ -368,7 +395,7 @@ class CityBoyBooster(ctk.CTk):
                 pass
 
         try:
-            self.log("cleaning up before we go...")
+            self.log("shutting down... wiping tracks and reverting changes.")
         except Exception:
             pass
 
@@ -482,10 +509,10 @@ class CityBoyBooster(ctk.CTk):
                     break
             if guid:
                 subprocess.run(f"powercfg /setactive {guid}", shell=True, capture_output=True)
-                self.log("done! your CPU is now running without power-saving throttling.")
-                self.log("(this will be reverted automatically when you close the app.)")
+                self.log("boom. ultimate performance plan engaged. no more throttling.")
+                self.log("(don't worry, i'll put your old plan back when you close me.)")
             else:
-                self.log("couldn't find the plan — Windows might not support it on this edition.")
+                self.log("damn, couldn't find the plan — your windows version might block it.")
         except Exception as e:
             self.log(f"power plan error: {e}")
 
@@ -515,7 +542,7 @@ class CityBoyBooster(ctk.CTk):
                     pass
             after = psutil.virtual_memory().percent
             diff = round(before - after, 1)
-            self.log(f"flushed {flushed} processes — RAM went from {before}% → {after}% ({diff}% freed).")
+            self.log(f"nuked {flushed} processes. RAM dropped from {before}% to {after}% (freed {diff}%). clean.")
         threading.Thread(target=_work, daemon=True).start()
 
     def _cmd_dns(self):
@@ -545,12 +572,12 @@ class CityBoyBooster(ctk.CTk):
                     cmd, capture_output=True, text=True, timeout=15,
                 )
                 if res.returncode == 0:
-                    self.log("DNS switched to Cloudflare 1.1.1.1 — should feel snappier online.")
+                    self.log("cloudflare DNS injected. network should feel a bit snappier now.")
                 else:
                     err = (res.stderr or "").strip()
-                    self.log(f"couldn't change adapter DNS. {err or 'try doing it manually in network settings.'}")
+                    self.log(f"failed to inject DNS. {err or 'might need to do it manually.'}")
             except subprocess.TimeoutExpired:
-                self.log("DNS command timed out. your adapter might be busy — try again.")
+                self.log("DNS swap timed out. your adapter is acting up, try again.")
             except Exception as e:
                 self.log(f"DNS command failed: {e}")
         threading.Thread(target=_work, daemon=True).start()
@@ -619,7 +646,7 @@ class CityBoyBooster(ctk.CTk):
                 break
                 
         if not found_any:
-            self.log("no heavy background apps found to sleep. you're good.")
+            self.log("no heavy background apps running right now. you're already clean.")
             return
 
         import base64
@@ -635,9 +662,9 @@ class CityBoyBooster(ctk.CTk):
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
             if result.returncode == 0:
-                self.log("done — Discord, browsers, and Spotify are now running in sleeper mode.")
+                self.log("sleeper mode active. browsers and discord are now taking a backseat.")
             else:
-                self.log("error lowering priority. make sure you're running as admin.")
+                self.log("couldn't force them to sleep. ensure you've got admin rights.")
         except Exception as e:
             self.log(f"sleeper mode failed: {e}")
 
@@ -726,9 +753,11 @@ class CityBoyBooster(ctk.CTk):
         self._btn(f, "Apply 190 FPS", lambda: self._apply_roblox_preset(190))
         self._btn(f, "Apply MAX Performance", lambda: self._apply_roblox_preset(9999))
         self._btn(f, "🚫  Disable All VFX (Max Performance + No Particles)", lambda: self._apply_roblox_preset("VFX"))
+        self._btn(f, "🥔  POTATO MODE (Extreme Low End / No Textures)", lambda: self._apply_roblox_preset("POTATO"),
+                  fg="#1A1A00", hover="#2E2E00", text_color="#FFFF00")
         self._btn(f, "🗑  Revert to Vanilla (remove all flags)",
                   self._cmd_revert_roblox,
-                  fg="#2A1015", hover="#441020", text_color="#FF4466")
+                  fg="#1A0000", hover="#2E0000", text_color="#FF003C")
 
     def _get_roblox_path(self):
         local = os.environ.get("LOCALAPPDATA", "")
@@ -790,6 +819,8 @@ class CityBoyBooster(ctk.CTk):
             label = "MAX Performance"
         elif fps == "VFX":
             label = "No VFX"
+        elif fps == "POTATO":
+            label = "Potato Mode"
         else:
             label = f"{fps} FPS"
         self.log(f"applying {label} preset...")
@@ -804,14 +835,20 @@ class CityBoyBooster(ctk.CTk):
 
     def _build_minecraft_page(self):
         f = self.mc_frame
-        self._heading(f, "Minecraft (Java Edition)",
+        self._heading(f, "Minecraft (Java, Bedrock, Cracked)",
                       "JVM and system-level optimizations for smoother chunk loading.")
 
-        self._btn(f, "⬆  Boost javaw.exe Priority",
+        self._btn(f, "⬆  Boost Java Priority (javaw.exe)",
                   lambda: self._set_process_priority("javaw.exe"))
 
-        self._btn(f, "🧹  Clear .minecraft/logs folder",
+        self._btn(f, "⬆  Boost Bedrock Priority (Minecraft.Windows.exe)",
+                  lambda: self._set_process_priority("Minecraft.Windows.exe"))
+
+        self._btn(f, "🧹  Clear Vanilla Logs (.minecraft/logs)",
                   self._cmd_clear_mc_logs)
+
+        self._btn(f, "🧹  Clear Cracked/Modded Caches (TLauncher/Lunar)",
+                  self._cmd_clear_cracked_caches)
 
         self._btn(f, "💀  Kill Background Browsers (free RAM)",
                   self._cmd_kill_browsers,
@@ -831,9 +868,29 @@ class CityBoyBooster(ctk.CTk):
         mc_logs = os.path.join(appdata, ".minecraft", "logs")
         if os.path.exists(mc_logs):
             shutil.rmtree(mc_logs, ignore_errors=True)
-            self.log("cleared Minecraft log files.")
+            self.log("cleared Vanilla Minecraft log files.")
         else:
             self.log("no .minecraft/logs folder found — nothing to clean.")
+
+    def _cmd_clear_cracked_caches(self):
+        appdata = os.environ.get("APPDATA", "")
+        targets = [
+            os.path.join(appdata, ".tlauncher", "logs"),
+            os.path.join(appdata, ".tlauncher_legacy", "logs"),
+            os.path.join(appdata, ".lunarclient", "logs"),
+            os.path.join(appdata, ".lunarclient", "offline", "logs"),
+            os.path.join(appdata, "pojavlauncher", "logs"),
+        ]
+        cleaned = 0
+        for t in targets:
+            if os.path.exists(t):
+                shutil.rmtree(t, ignore_errors=True)
+                cleaned += 1
+        
+        if cleaned > 0:
+            self.log(f"nuked {cleaned} cracked/modded cache folders.")
+        else:
+            self.log("no TLauncher or Lunar caches found.")
 
     def _cmd_kill_browsers(self):
         self.log("looking for browsers eating your RAM...")
@@ -889,6 +946,50 @@ class CityBoyBooster(ctk.CTk):
             self.log("cleared Fortnite logs and crash dumps.")
         else:
             self.log("no Fortnite cache found — either it's already clean or the game isn't installed.")
+
+    # =====================================================================
+    #  VALORANT PAGE
+    # =====================================================================
+
+    def _build_valorant_page(self):
+        f = self.val_frame
+        self._heading(f, "Valorant (Riot Vanguard Safe)",
+                      "Strictly process priority and log cleanups to avoid Vanguard bans.")
+
+        self._btn(f, "⬆  Boost Valorant Priority",
+                  lambda: self._set_process_priority("VALORANT-Win64-Shipping.exe"),
+                  fg="#1A0505", hover="#2E0A0A", text_color="#FF3333")
+
+        self._btn(f, "🧹  Clear Riot Client & Valorant Logs",
+                  self._cmd_clear_val_logs)
+
+        ctk.CTkLabel(
+            f, text=(
+                "Note: Vanguard is extremely sensitive. We only use standard OS API calls\n"
+                "like PowerShell priority injection. Absolutely no memory hooking."
+            ),
+            font=ctk.CTkFont(size=11), text_color="#444444",
+            wraplength=440, justify="left",
+        ).pack(anchor="w", pady=(20, 0))
+
+    def _cmd_clear_val_logs(self):
+        local = os.environ.get("LOCALAPPDATA", "")
+        targets = [
+            os.path.join(local, "VALORANT", "Saved", "Logs"),
+            os.path.join(local, "VALORANT", "Saved", "Crashes"),
+            os.path.join(local, "Riot Games", "Riot Client", "Logs"),
+            os.path.join(local, "Riot Games", "Riot Client", "Crashes"),
+        ]
+        cleaned = 0
+        for d in targets:
+            if os.path.exists(d):
+                shutil.rmtree(d, ignore_errors=True)
+                cleaned += 1
+        if cleaned:
+            self.log(f"nuked {cleaned} Riot/Valorant log folders. client should be fresh.")
+        else:
+            self.log("no Valorant logs found. already clean.")
+
 
     # =====================================================================
     #  SHARED: process priority helper

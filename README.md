@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20Android-lightgrey?style=flat-square)
-![Version](https://img.shields.io/badge/Version-v1.3-00FFCC?style=flat-square)
+![Version](https://img.shields.io/badge/Version-v1.5-00FF00?style=flat-square)
 
 CityBoy is a multi-platform Python application that applies real, measurable optimizations to improve game performance. It works universally across any game and includes dedicated presets for Roblox, Minecraft, and Fortnite on Windows, plus a new CLI for Android via Termux. Everything it touches on Windows gets **automatically reverted** when you close the app — nothing is left behind on your system.
 
@@ -85,8 +85,9 @@ This tool is designed to be fully reversible and transparent.
 | Game | Available Optimizations |
 |---|---|
 | **Any Game (Windows)** | RAM flush, power plan, sleeper mode, process priority, DNS, registry tweaks |
-| **Roblox (Windows)** | FPS presets (120 / 190 / MAX / No-VFX), auto-revert on close |
-| **Minecraft (Java)** | `javaw.exe` priority boost, log folder cleanup, browser RAM reclaim |
+| **Roblox (Windows)** | FPS presets (120 / 190 / MAX / POTATO / No-VFX), auto-revert on close |
+| **Minecraft (PC)** | Priority boost for Java, Bedrock (`Minecraft.Windows.exe`), and cache cleanup for Vanilla/TLauncher/Lunar |
+| **Valorant (Windows)** | Vanguard-safe process priority boost, Riot Client + Valorant log cleanup |
 | **Fortnite (Windows)** | Process priority, log + crash dump cleanup |
 | **Android (Universal)** | RAM flush, cache cleanup, wake lock, system diagnostics |
 
@@ -107,6 +108,7 @@ All Roblox presets write to:
 | **190 FPS** | `DFIntTaskSchedulerTargetFps: 190`, VSync off, physics optimization |
 | **MAX Performance** | Unlocked FPS, VSync off, PostFX off, DPI scale off, shadows off, light update tuning |
 | **No VFX** | All MAX flags + particle systems disabled, grass removed, MSAA forced to 0 |
+| **POTATO** | All VFX flags + texture quality forced to 1, max camera zoom locked, terrain detail minimized |
 
 > All presets are automatically removed from disk when you close the app.
 
@@ -149,6 +151,13 @@ A: Three features require elevation: changing process CPU priority, writing to H
 ---
 
 ## Changelog
+
+### v1.5 — 2026-04-25
+- **Revamp:** Pure Black Brutalist GUI update — switched to high-contrast neon/black aesthetic with sharp edges.
+- **Added:** Valorant support! Priority injection and Riot Client log cleaner (100% Vanguard safe).
+- **Added:** Minecraft Bedrock Edition priority support (`Minecraft.Windows.exe`).
+- **Added:** Cracked Minecraft cache cleanup (TLauncher, Lunar, Pojav Launcher).
+- **Added:** "Potato Mode" for Roblox — extreme low-end config forcing lowest texture quality and minimum terrain detail.
 
 ### v1.3 — 2026-04-24
 - **Added:** Android support! A new interactive CLI (`main2.py`) for Termux. Includes RAM flushing, cache cleaning, and wake locks for mobile gamers. No root required.
